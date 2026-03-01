@@ -132,6 +132,7 @@ function renderTabs(tabs) {
   list.innerHTML = '';
   
   tabs.forEach((tab, index) => {
+    if (!tab) return;
     const item = document.createElement('div');
     // 高亮当前选中的 tab
     item.className = `tab-item${index === highlightedIndex ? ' highlighted' : ''}`;
