@@ -37,6 +37,15 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
  * 监听新 tab 创建事件
  */
 chrome.tabs.onCreated.addListener(async (tab) => {
+  console.log('[background] new tab created:', tab);
+  if (currentTabId !== null) {
+    // 将之前的 tab 加入历史列表
+    recentTabs = recentTabs.filter(id => id !== currentTabId);
+    recentTabs.unshift(currentTabId);
+    if (recentTabs.length > MAX_RECENT) {
+      recentTabs = recentTabs.slice(0, MAX_RECENT);
+    }
+  }
   currentTabId = tab.id;
   await saveData();
 });
