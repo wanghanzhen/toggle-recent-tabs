@@ -34,20 +34,22 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 /**
- * 监听新 tab 创建事件
+ * 监听 tab 更新事件（用户输入URL并加载完成后触发）
  */
-chrome.tabs.onCreated.addListener(async (tab) => {
-  console.log('[background] new tab created:', tab);
-  if (currentTabId !== null) {
-    // 将之前的 tab 加入历史列表
-    recentTabs = recentTabs.filter(id => id !== currentTabId);
-    recentTabs.unshift(currentTabId);
-    if (recentTabs.length > MAX_RECENT) {
-      recentTabs = recentTabs.slice(0, MAX_RECENT);
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // 只在页面加载完成时处理，且不是空白页或chrome内部页面
+  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+    if (currentTabId !== null && currentTabId !== tabId) {
+      // 将之前的 tab 加入历史列表
+      recentTabs = recentTabs.filter(id => id !== currentTabId);
+      recentTabs.unshift(currentTabId);
+      if (recentTabs.length > MAX_RECENT) {
+        recentTabs = recentTabs.slice(0, MAX_RECENT);
+      }
     }
+    currentTabId = tabId;
+    await saveData();
   }
-  currentTabId = tab.id;
-  await saveData();
 });
 
 /**
