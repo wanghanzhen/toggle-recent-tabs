@@ -57,8 +57,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .filter(t => t !== undefined);
       
       const currentTab = tabMap.get(currentTabId);
-      // 组合当前 tab 和历史 tabs
-      const result = [currentTab, ...recent].slice(0, MAX_RECENT);
+      // 组合当前 tab 和历史 tabs，过滤掉不存在的 tab
+      const result = [currentTab, ...recent].filter(t => t !== undefined).slice(0, MAX_RECENT);
       sendResponse(result);
     });
     return true; // 异步响应
