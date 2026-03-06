@@ -46,6 +46,7 @@ let keyDownTime = 0;             // 按键按下的时间戳
 
 // 弹窗相关
 let popupElement = null;     // 弹窗 DOM 元素
+let popupListElement = null; // 弹窗列表容器
 let highlightedIndex = 1;    // 当前高亮的 tab 索引（默认第二个）
 let recentTabsData = [];     // 最近访问的 tabs 列表
 
@@ -69,55 +70,71 @@ function checkModifiersPressed(e) {
  * 创建弹窗 DOM 结构
  */
 function createPopup() {
-  const popup = document.createElement('div');
-  popup.id = 'tab-switcher-popup';
-  popup.innerHTML = `
+  const host = document.createElement('div');
+  host.id = 'tab-switcher-popup-host';
+
+  const shadowRoot = host.attachShadow({ mode: 'open' });
+  shadowRoot.innerHTML = `
     <style>
-      #tab-switcher-popup {
+      :host {
+        all: initial;
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        pointer-events: none;
+        color-scheme: light;
+      }
+      .popup {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 999999;
+        pointer-events: auto;
       }
-      #tab-switcher-popup .tab-list {
+      .tab-list {
         background: #2d2d2d;
         border-radius: 12px;
         padding: 12px;
         min-width: 400px;
         max-width: 600px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
-      #tab-switcher-popup .tab-item {
+      .tab-item {
         display: flex;
         align-items: center;
         padding: 12px 16px;
         border-radius: 8px;
         cursor: pointer;
         color: #e0e0e0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
         gap: 12px;
       }
-      #tab-switcher-popup .tab-item.highlighted {
+      .tab-item.highlighted {
         background: #4a9eff;
         color: white;
       }
-      #tab-switcher-popup .tab-item .favicon {
+      .tab-item .favicon {
         width: 16px;
         height: 16px;
         flex-shrink: 0;
       }
-      #tab-switcher-popup .tab-item .title {
+      .tab-item .title {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
     </style>
-    <div class="tab-list"></div>
+    <div class="popup">
+      <div class="tab-list"></div>
+    </div>
   `;
-  document.body.appendChild(popup);
-  return popup;
+
+  popupListElement = shadowRoot.querySelector('.tab-list');
+
+  const mountTarget = document.body || document.documentElement;
+  mountTarget.appendChild(host);
+  return host;
 }
 
 /**
@@ -126,22 +143,30 @@ function createPopup() {
  */
 function renderTabs(tabs) {
   recentTabsData = tabs;
-  if (!popupElement) return;
-  
-  const list = popupElement.querySelector('.tab-list');
-  list.innerHTML = '';
+  if (!popupElement || !popupListElement) return;
+
+  popupListElement.replaceChildren();
   
   tabs.forEach((tab, index) => {
     if (!tab) return;
+
     const item = document.createElement('div');
-    // 高亮当前选中的 tab
     item.className = `tab-item${index === highlightedIndex ? ' highlighted' : ''}`;
-    item.innerHTML = `
-      <img class="favicon" src="${tab.favIconUrl || ''}" />
-      <span class="title">${tab.title || 'Untitled'}</span>
-    `;
+
+    const favicon = document.createElement('img');
+    favicon.className = 'favicon';
+    favicon.alt = '';
+    favicon.src = tab.favIconUrl || '';
+    favicon.onerror = () => { favicon.style.display = 'none'; };
+
+    const title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = tab.title || 'Untitled';
+
+    item.appendChild(favicon);
+    item.appendChild(title);
     item.addEventListener('click', () => switchToTab(index));
-    list.appendChild(item);
+    popupListElement.appendChild(item);
   });
 }
 
@@ -190,6 +215,7 @@ function hidePopup() {
     popupElement.remove();
     popupElement = null;
   }
+  popupListElement = null;
   recentTabsData = [];
   state = 'idle';
 }
