@@ -119,6 +119,24 @@ function createPopup() {
         height: 16px;
         flex-shrink: 0;
       }
+      .tab-item .favicon-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.14);
+        color: #f2f2f2;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+      .tab-item.highlighted .favicon-fallback {
+        background: rgba(255, 255, 255, 0.24);
+      }
       .tab-item .title {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -153,21 +171,66 @@ function renderTabs(tabs) {
     const item = document.createElement('div');
     item.className = `tab-item${index === highlightedIndex ? ' highlighted' : ''}`;
 
+    const faviconContainer = document.createElement('div');
+    faviconContainer.style.position = 'relative';
+    faviconContainer.style.width = '16px';
+    faviconContainer.style.height = '16px';
+    faviconContainer.style.flexShrink = '0';
+
     const favicon = document.createElement('img');
     favicon.className = 'favicon';
     favicon.alt = '';
-    favicon.src = tab.favIconUrl || '';
-    favicon.onerror = () => { favicon.style.display = 'none'; };
+    favicon.style.display = tab.favIconUrl ? 'block' : 'none';
+
+    const fallback = document.createElement('span');
+    fallback.className = 'favicon-fallback';
+    fallback.textContent = getTabFallbackText(tab);
+    fallback.style.display = tab.favIconUrl ? 'none' : 'inline-flex';
+
+    favicon.onerror = () => {
+      favicon.style.display = 'none';
+      fallback.style.display = 'inline-flex';
+    };
+
+    if (tab.favIconUrl) {
+      favicon.onload = () => {
+        fallback.style.display = 'none';
+      };
+      favicon.src = tab.favIconUrl;
+    }
 
     const title = document.createElement('span');
     title.className = 'title';
     title.textContent = tab.title || 'Untitled';
 
-    item.appendChild(favicon);
+    faviconContainer.appendChild(favicon);
+    faviconContainer.appendChild(fallback);
+    item.appendChild(faviconContainer);
     item.appendChild(title);
     item.addEventListener('click', () => switchToTab(index));
     popupListElement.appendChild(item);
   });
+}
+
+function getTabFallbackText(tab) {
+  const hostname = safeParseHostname(tab?.url);
+  if (hostname) {
+    return hostname[0];
+  }
+
+  const title = typeof tab?.title === 'string' ? tab.title.trim() : '';
+  const match = title.match(/[A-Za-z0-9\u4e00-\u9fa5]/u);
+  return match ? match[0] : 'T';
+}
+
+function safeParseHostname(url) {
+  if (!url) return '';
+
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch (e) {
+    return '';
+  }
 }
 
 /**
