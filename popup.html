@@ -3,74 +3,274 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: rgba(18, 18, 18, 0.94);
+      --panel-edge: rgba(255, 255, 255, 0.08);
+      --panel-shadow: 0 18px 56px rgba(0, 0, 0, 0.5);
+      --text: #f2f2f2;
+      --muted: #9c9c9c;
+      --faint: #6d6d6d;
+      --accent: #d4d4d4;
+      --accent-strong: #bcbcbc;
+      --accent-soft: rgba(255, 255, 255, 0.08);
+      --key-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+      --key-border: rgba(255, 255, 255, 0.16);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 360px;
+      min-height: 280px;
+      overflow: hidden;
+      font-family: "SF Pro Display", "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 32%),
+        linear-gradient(180deg, #101010, #050505 58%);
+      color: var(--text);
+    }
+
     body {
-      width: 260px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-      padding: 24px;
+      padding: 10px;
     }
-    .title {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 20px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+
+    .shell {
+      position: relative;
+      min-height: calc(280px - 20px);
+      padding: 14px 14px 12px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      box-shadow: var(--panel-shadow);
+      backdrop-filter: blur(28px) saturate(135%);
+      overflow: hidden;
     }
-    .hint {
-      font-size: 12px;
-      color: #999;
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
       margin-bottom: 12px;
     }
-    .shortcut {
-      font-size: 22px;
-      text-align: center;
-      padding: 14px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      min-height: 52px;
+
+    .brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .shortcut .mod { color: #666; }
-    .shortcut .key { color: #333; font-weight: 600; }
-    .shortcut.empty { color: #bbb; font-size: 13px; }
+
+    .brand-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #d7d7d7, #8f8f8f);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.14);
+      flex-shrink: 0;
+    }
+
+    .brand-copy strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 640;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-copy span {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #c8c8c8;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
+    }
+
+    .capture {
+      position: relative;
+      padding: 14px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+        rgba(12, 12, 12, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .capture-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .capture-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .capture-badge {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .shortcut {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 72px;
+    }
+
+    .shortcut.empty {
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      color: var(--faint);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .keycap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 12px;
+      background: var(--key-bg);
+      border: 1px solid var(--key-border);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 8px 20px rgba(0, 0, 0, 0.24);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+    }
+
+    .keycap.keycap-wide {
+      min-width: 62px;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .footer {
+      margin-top: 10px;
+    }
+
+    .msg {
+      min-height: 16px;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 11px;
+    }
+
     .btn {
       width: 100%;
-      background: #333;
-      color: #fff;
+      height: 42px;
       border: none;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      opacity: 0.4;
-    }
-    .btn.active { opacity: 1; }
-    .btn:hover { background: #444; }
-    .msg {
-      text-align: center;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #d0d0d0, #8f8f8f);
+      color: #111111;
       font-size: 12px;
-      color: #333;
-      margin-top: 12px;
-      min-height: 16px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
     }
   </style>
 </head>
 <body>
-  <div class="title">Toggle Tab</div>
-  <p class="hint">按下快捷键</p>
-  <div class="shortcut" id="shortcut">
-    <span class="empty">等待输入...</span>
+  <div class="shell">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-copy">
+          <strong>Toggle Tab</strong>
+          <span>Recent Tab Switcher</span>
+        </div>
+      </div>
+      <div class="status" id="statusPill">
+        <span class="status-dot"></span>
+        <span id="statusText">就绪</span>
+      </div>
+    </div>
+
+    <section class="capture">
+      <div class="capture-top">
+        <div class="capture-label" id="captureLabel">当前快捷键</div>
+        <div class="capture-badge" id="captureBadge">监听中</div>
+      </div>
+      <div class="shortcut empty" id="shortcut">等待输入...</div>
+    </section>
+
+    <div class="footer">
+      <div class="msg" id="msg"></div>
+      <button class="btn" id="saveBtn" disabled>保存快捷键</button>
+    </div>
   </div>
-  <button class="btn" id="saveBtn" disabled>保存</button>
-  <div class="msg" id="msg"></div>
   <script src="popup.js"></script>
 </body>
 </html>

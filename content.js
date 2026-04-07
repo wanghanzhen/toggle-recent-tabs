@@ -32,6 +32,7 @@ if (chrome.storage?.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.shortcutConfig) {
       shortcutConfig = changes.shortcutConfig.newValue || DEFAULT_CONFIG;
+      updatePopupShortcutHint();
     }
   });
 }
@@ -47,6 +48,7 @@ let keyDownTime = 0;             // 按键按下的时间戳
 // 弹窗相关
 let popupElement = null;     // 弹窗 DOM 元素
 let popupListElement = null; // 弹窗列表容器
+let popupHintElement = null; // 顶部快捷键提示
 let highlightedIndex = 1;    // 当前高亮的 tab 索引（默认第二个）
 let recentTabsData = [];     // 最近访问的 tabs 列表
 
@@ -66,6 +68,41 @@ function checkModifiersPressed(e) {
   return true;
 }
 
+function getShortcutTokens() {
+  const tokens = [];
+  const modifiers = shortcutConfig.modifiers || {};
+
+  if (modifiers.shift) tokens.push('⇧');
+  if (modifiers.ctrl) tokens.push('⌃');
+  if (modifiers.alt) tokens.push('⌥');
+  if (modifiers.meta) tokens.push('⌘');
+
+  tokens.push(getShortcutKeyLabel(shortcutConfig.key));
+  return tokens;
+}
+
+function getShortcutKeyLabel(key) {
+  if (!key) return 'Key';
+  if (key.length === 1) return key.toUpperCase();
+
+  const aliases = {
+    ArrowUp: 'Up',
+    ArrowDown: 'Down',
+    ArrowLeft: 'Left',
+    ArrowRight: 'Right',
+    Escape: 'Esc',
+    Backspace: 'Delete',
+    ' ': 'Space'
+  };
+
+  return aliases[key] || key;
+}
+
+function updatePopupShortcutHint() {
+  if (!popupHintElement) return;
+  popupHintElement.textContent = getShortcutTokens().join(' ');
+}
+
 /**
  * 创建弹窗 DOM 结构
  */
@@ -82,7 +119,17 @@ function createPopup() {
         inset: 0;
         z-index: 2147483647;
         pointer-events: none;
-        color-scheme: light;
+        color-scheme: dark;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 24%),
+          rgba(5, 5, 5, 0.34);
+        backdrop-filter: blur(8px);
       }
       .popup {
         position: fixed;
@@ -90,65 +137,163 @@ function createPopup() {
         left: 50%;
         transform: translate(-50%, -50%);
         pointer-events: auto;
+        width: min(560px, calc(100vw - 24px));
+        z-index: 1;
+        user-select: none;
+        -webkit-user-select: none;
       }
       .tab-list {
-        background: #2d2d2d;
-        border-radius: 12px;
-        padding: 12px;
-        min-width: 400px;
-        max-width: 600px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(10, 10, 10, 0.96));
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow:
+          0 18px 48px rgba(0, 0, 0, 0.46),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        font-family: "SF Pro Display", "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+        backdrop-filter: blur(26px) saturate(135%);
+      }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .panel-title {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .panel-title strong {
+        color: #f2f2f2;
+        font-size: 13px;
+        font-weight: 640;
+        letter-spacing: -0.02em;
+      }
+      .panel-title span {
+        color: #9b9b9b;
+        font-size: 11px;
+      }
+      .panel-hint {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #9b9b9b;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .panel-body {
+        padding: 8px;
       }
       .tab-item {
         display: flex;
         align-items: center;
-        padding: 12px 16px;
-        border-radius: 8px;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
         cursor: pointer;
-        color: #e0e0e0;
-        font-size: 14px;
-        gap: 12px;
+        color: #f2f2f2;
+        transition: background 120ms ease, transform 120ms ease;
+        user-select: none;
+        -webkit-user-select: none;
       }
       .tab-item.highlighted {
-        background: #4a9eff;
-        color: white;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      }
+      .tab-item:hover {
+        transform: translateY(-1px);
       }
       .tab-item .favicon {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
+        border-radius: 5px;
       }
       .tab-item .favicon-fallback {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.14);
-        color: #f2f2f2;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #ededed;
         font-size: 10px;
         font-weight: 600;
         line-height: 1;
         text-transform: uppercase;
       }
       .tab-item.highlighted .favicon-fallback {
-        background: rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .tab-copy {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
       }
       .tab-item .title {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 13px;
+        font-weight: 560;
+        letter-spacing: -0.01em;
+      }
+      .tab-item .meta {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #8e8e8e;
+        font-size: 11px;
+      }
+      .tab-item .index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #9a9a9a;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .tab-item.highlighted .index {
+        background: rgba(255, 255, 255, 0.12);
+        color: #f2f2f2;
       }
     </style>
+    <div class="backdrop"></div>
     <div class="popup">
-      <div class="tab-list"></div>
+      <div class="tab-list">
+        <div class="panel-header">
+          <div class="panel-title">
+            <strong>最近标签页</strong>
+            <span>松开修饰键即可确认当前选择</span>
+          </div>
+          <div class="panel-hint"></div>
+        </div>
+        <div class="panel-body"></div>
+      </div>
     </div>
   `;
 
-  popupListElement = shadowRoot.querySelector('.tab-list');
+  popupListElement = shadowRoot.querySelector('.panel-body');
+  popupHintElement = shadowRoot.querySelector('.panel-hint');
+  updatePopupShortcutHint();
 
   const mountTarget = document.body || document.documentElement;
   mountTarget.appendChild(host);
@@ -173,8 +318,8 @@ function renderTabs(tabs) {
 
     const faviconContainer = document.createElement('div');
     faviconContainer.style.position = 'relative';
-    faviconContainer.style.width = '16px';
-    faviconContainer.style.height = '16px';
+    faviconContainer.style.width = '18px';
+    faviconContainer.style.height = '18px';
     faviconContainer.style.flexShrink = '0';
 
     const favicon = document.createElement('img');
@@ -203,11 +348,29 @@ function renderTabs(tabs) {
     title.className = 'title';
     title.textContent = tab.title || 'Untitled';
 
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = getTabMetaText(tab, index);
+
+    const copy = document.createElement('div');
+    copy.className = 'tab-copy';
+    copy.appendChild(title);
+    copy.appendChild(meta);
+
+    const order = document.createElement('span');
+    order.className = 'index';
+    order.textContent = index === 0 ? 'Now' : String(index);
+
     faviconContainer.appendChild(favicon);
     faviconContainer.appendChild(fallback);
     item.appendChild(faviconContainer);
-    item.appendChild(title);
-    item.addEventListener('click', () => switchToTab(index));
+    item.appendChild(copy);
+    item.appendChild(order);
+    item.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      switchToTab(index);
+    });
     popupListElement.appendChild(item);
   });
 }
@@ -231,6 +394,15 @@ function safeParseHostname(url) {
   } catch (e) {
     return '';
   }
+}
+
+function getTabMetaText(tab, index) {
+  const hostname = safeParseHostname(tab?.url);
+  if (hostname) {
+    return index === 0 ? `${hostname} · 当前标签页` : hostname;
+  }
+
+  return index === 0 ? '当前标签页' : '最近标签页';
 }
 
 /**
@@ -279,6 +451,7 @@ function hidePopup() {
     popupElement = null;
   }
   popupListElement = null;
+  popupHintElement = null;
   recentTabsData = [];
   state = 'idle';
 }
